@@ -19,6 +19,9 @@ https://github.com/Dostarki/robinitypage repoyu çek ve çalıştır (clone and 
 - Repo is frontend-only. Admin page (/admin) calls /api/auth/* and /api/admin/* endpoints that DO NOT exist in the repo — admin workspace will show API errors.
 - ETH price widget uses public Coinbase API (external).
 
+## Changelog
+- 2026-09-18: "Open Intelligence" buttons (landing hero, methodology, console) no longer navigate to /intelligence. They open an English toast via ComingSoonButton (landing.jsx, React portal to body): "Coming soon. Intelligence will be announced shortly — stay tuned on X (@robinityint)." Auto-dismiss 6s + close button. Toast CSS in styles.css (.ri-soon-toast). data-testids: open-intelligence-soon-button, soon-toast, soon-toast-close, soon-toast-x-link.
+
 ## Backlog
 - P1: Admin backend (/api/auth/nonce, verify-wallet, totp-setup, verify-totp, /api/admin/api-keys) if user wants the admin workspace functional
 - P2: landing-effects / risk-ui standalone builds (npm run build:landing, build:risk)
