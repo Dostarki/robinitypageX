@@ -19,6 +19,7 @@ X_API = "https://api.x.com/2"
 SCOPES = "tweet.read users.read follows.read like.read offline.access"
 SESSION_COOKIE = "ri_x_session"
 TASK_IDS = ("follow", "like_rt", "quote")
+TASK_POINTS = {"follow": 20, "like_rt": 10, "quote": 50}
 EVM_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
 
 
@@ -65,6 +66,10 @@ async def current_user(request: Request):
     return await db.x_users.find_one({"x_id": session["x_id"]}, {"_id": 0})
 
 
+def user_points(user):
+    return sum(TASK_POINTS[t] for t in TASK_IDS if user.get("tasks", {}).get(t, {}).get("done"))
+
+
 def public_user(user):
     if not user:
         return None
@@ -75,13 +80,26 @@ def public_user(user):
         "profile_image_url": user.get("profile_image_url"),
         "evm_address": user.get("evm_address"),
         "tasks": user.get("tasks", {}),
+        "points": user_points(user),
     }
 
 
 @router.get("/config")
 async def get_config():
     cfg = task_config()
-    return {"configured": configured(), "target_username": cfg["target_username"], "tweet_url": cfg["tweet_url"], "tweet_id": cfg["tweet_id"], "quote_text": cfg["quote_text"]}
+    return {"configured": configured(), "target_username": cfg["target_username"], "tweet_url": cfg["tweet_url"], "tweet_id": cfg["tweet_id"], "quote_text": cfg["quote_text"], "points": TASK_POINTS}
+
+
+@router.get("/leaderboard")
+async def leaderboard(request: Request):
+    db = get_db(request)
+    total = await db.x_users.count_documents({"evm_address": {"$exists": True}})
+    cursor = db.x_users.find({"evm_address": {"$exists": True}}, {"_id": 0, "x_id": 1, "username": 1, "name": 1, "profile_image_url": 1, "tasks": 1, "points": 1, "points_updated_at": 1})
+    users = await cursor.to_list(length=None)
+    users.sort(key=lambda u: (-user_points(u), u.get("points_updated_at") or "\uffff"))
+    entries = [{"rank": i + 1, "x_id": u["x_id"], "username": u["username"], "name": u.get("name"), "profile_image_url": u.get("profile_image_url"), "points": user_points(u),
+                "completed": sum(1 for t in TASK_IDS if u.get("tasks", {}).get(t, {}).get("done"))} for i, u in enumerate(users[:10])]
+    return {"entries": entries, "total_participants": total, "points": TASK_POINTS}
 
 
 @router.get("/auth/login")
@@ -282,7 +300,7 @@ async def verify_task(task_id: str, request: Request):
             result = await CHECKS[task_id](client, token, user, cfg)
     if result is False:
         raise HTTPException(422, "Not completed yet on X. Finish the action, then verify again.")
-    entry = {"done": True, "verified": result is True, "completed_at": now().isoformat()}
-    await db.x_users.update_one({"x_id": user["x_id"]}, {"$set": {f"tasks.{task_id}": entry}})
+    entry = {"done": True, "verified": result is True, "completed_at": now().isoformat(), "points": TASK_POINTS[task_id]}
     user.setdefault("tasks", {})[task_id] = entry
-    return {"user": public_user(user), "verified": result is True}
+    await db.x_users.update_one({"x_id": user["x_id"]}, {"$set": {f"tasks.{task_id}": entry, "points": user_points(user), "points_updated_at": entry["completed_at"]}})
+    return {"user": public_user(user), "verified": result is True, "points_awarded": TASK_POINTS[task_id]}
