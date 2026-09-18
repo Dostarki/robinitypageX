@@ -30,6 +30,13 @@ https://github.com/Dostarki/robinitypage repoyu çek ve çalıştır (clone and 
 - Frontend: /app/robinitypage/app/web/src/x-connect.jsx (XConnect in PublicHeader right side; Tasks button + avatar/@username after connect; Tasks modal -> EVM form once -> 3 task cards with intent open + Verify). Styles appended to styles.css. Rebuild with `npm run build:web` in /app/robinitypage.
 - Tested: /app/test_reports/iteration_1.json (14/14 backend + full frontend flow pass, using dev mock login).
 
+## Points + Leaderboard (2026-09-18)
+- Points: follow 20, like_rt 10, quote 50 (TASK_POINTS in x_router.py). verify returns points_awarded; user doc gets points + points_updated_at; /me and /config expose points.
+- GET /api/x/leaderboard (public): top 10 by points desc (tie → earlier completion), fields rank/username/profile_image_url/points/completed + total_participants. No EVM exposed.
+- Frontend: "Leaderboard" button in header (always visible) → modal (medals for top 3, "you" highlight). Tasks panel shows points card + per-task badges; header Tasks button shows "N pts".
+- Tested: /app/test_reports/iteration_2.json (8/8 backend + full frontend pass). Seed/dev users removed afterwards; X_DEV_MOCK back to 0.
+- Real OAuth confirmed working: user @0xBombo connected and completed Follow (20 pts).
+
 ## Backlog
 - P0: User must provide X_TASK_TWEET_URL (post to like/RT/quote) and confirm callback URL is registered in X Developer Portal; user to test real OAuth in browser.
 - P1: Admin backend (/api/auth/nonce, verify-wallet, totp-setup, verify-totp, /api/admin/api-keys) if user wants the admin workspace functional

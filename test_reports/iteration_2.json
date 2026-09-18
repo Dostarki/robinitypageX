@@ -1,0 +1,26 @@
+{
+  "summary": "Tested Robinity task-points + public Leaderboard feature end-to-end. Backend: 8/8 pytest cases pass (new file test_x_points_leaderboard.py) covering /api/x/config points map {follow:20,like_rt:10,quote:50}, public /api/x/leaderboard (no cookie) returns 4+ seeded entries sorted desc, rank 1=alice_eth (80), bob_defi=70, carol_x=20, dave_nft=10, entries include rank/username/profile_image_url/points/completed, points map echoed, /api/x/me includes points field (0 initial), EVM save+409 conflict, POST /tasks/follow/verify returns points_awarded=20 and user.points=20, like_rt returns 503 (tweet not configured — expected), leaderboard subsequently includes robinity_tester with 20 pts. Frontend Playwright: header shows leaderboard-button when not connected on desktop and mobile; leaderboard-modal opens with leaderboard-list, rank1 alice_eth 80 pts confirmed via leaderboard-row-1/leaderboard-points-1; closes on Escape and via leaderboard-modal-close. Dev login redirects and shows tasks-button + profile; tasks-modal opens; evm-form accepts 0x123...5678 and saves; tasks-points-card + tasks-user-points visible (starts 0); task-{follow|like_rt|quote}-points badges show +20/+10/+50 pts. Follow open button opens https://x.com/intent/follow?screen_name=RobinityInt, verify awards 20 pts, toast displayed, tasks-user-points becomes 20, task-follow-done shows '✓ Done · +20', header tasks-button-points shows '20 pts'. Leaderboard row for robinity_tester carries class 'is-me' and 'you' label. Mobile 390px leaderboard modal has 0px horizontal overflow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Header (mobile <=820px, logged-in)", "issues": ["CSS rule '.ri-header-x:not(:has(.ri-x-profile)) .ri-lb-button{display:inline-flex}' hides the Leaderboard button in the header for logged-in users on mobile. Not a blocker (task requirement targets no-overflow in modal, and modal opens fine on mobile without login), but a logged-in mobile user has no obvious entry point to open the Leaderboard. Consider surfacing a Leaderboard link inside the Tasks modal or keeping the header button visible on mobile."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_x_points_leaderboard.py", "/app/test_reports/pytest/x_points_leaderboard.xml", "/app/backend/tests/test_x_router.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "x_router.py: user_points() sums TASK_POINTS live from tasks map; server also writes 'points' field on verify. leaderboard sort uses user_points(u) (fresh) but tie-breaker is by 'points_updated_at' asc via '\\uffff' default — users without timestamp end up last within their tier which is fine. Consider persisting 'points' consistently (e.g., on evm-save) so the sort has a stable stored value for indexing at scale.",
+    "leaderboard filter uses {'evm_address': {'$exists': True}} — a user who verified follow but has not saved EVM won't appear on leaderboard even though they have points. Seeded users all have evm_address set so it's fine, but this can surprise real users. Consider also including users with points>0 OR make EVM save happen prior to any task.",
+    "Mobile header hides '.ri-lb-button' for logged-in users (styles.css line 22); no alternate entry point provided (see design_issues).",
+    "check_follow still iterates up to 5*1000 following pages per verify call — will be rate-limited once real X credentials are used; consider a bulk 'friends/ids' or caching strategy."
+  ],
+  "updated_files": ["/app/backend/tests/test_x_points_leaderboard.py", "/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "100% (8/8 new + 14/14 prior)", "frontend": "100%"},
+  "test_credentials": "Dev mock: GET {BACKEND_URL}/api/x/auth/dev-login (X_DEV_MOCK=1) -> user @robinity_tester (x_id dev-000001). Reset with: mongosh test_database --eval 'db.x_users.deleteMany({x_id:\"dev-000001\"}); db.x_sessions.deleteMany({x_id:\"dev-000001\"});'",
+  "seed_data_creation": "None persisted by tests — dev user cleaned up at end of run. Existing seeded users alice_eth/bob_defi/carol_x/dave_nft and real user 0xBombo untouched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend x_router.py exposes TASK_POINTS {follow:20,like_rt:10,quote:50}, /api/x/leaderboard (public), user.points on /me and task-verify. Frontend x-connect.jsx: LeaderboardPanel + TasksPanel points card + TaskCard badges; leaderboard button hidden on mobile for logged-in users (styles.css @media <=820px). Public URL: https://robinity-preview.preview.emergentagent.com. To reset dev user run the mongo command above. Frontend is prebuilt; if edited rebuild with 'cd /app/robinitypage && npm run build:web'."
+}
