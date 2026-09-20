@@ -37,6 +37,13 @@ https://github.com/Dostarki/robinitypage repoyu çek ve çalıştır (clone and 
 - Tested: /app/test_reports/iteration_2.json (8/8 backend + full frontend pass). Seed/dev users removed afterwards; X_DEV_MOCK back to 0.
 - Real OAuth confirmed working: user @0xBombo connected and completed Follow (20 pts).
 
+## Frontend migration to /app/frontend (2026-09-18, deploy fix)
+- ROOT CAUSE of robinit.xyz placeholder: Emergent pipeline builds only /app/frontend (CRA). App lived in /app/robinitypage (esbuild + serve.js) → never built.
+- FIX: ported UI into standard CRA: src/index.js → src/robinity/main.jsx; src/robinity/* (landing, x-connect, admin, css), src/risk-ui/* (Intelligence), src/site-theme.css, src/assets/robinity-logo.png (css mask), public/assets/{favicon,robinity-logo}.png. Deps added: ethers@6, three@0.186.0. `CI=true yarn build` OK. frontend/.env: DISABLE_ESLINT_PLUGIN=true.
+- Supervisor `frontend` (craco start :3000) now serves the app; serve.js killed. /app/robinitypage is now DEAD CODE (kept; user has not decided on deletion).
+- Deployer static scan flags `ethers` (used only by non-functional /admin wallet login) as "blockchain" BLOCKER — user asked (option a: remove ethers + stub /admin, b: keep); NO ANSWER YET. Previous deploy with ethers present built successfully.
+- Mobile: task buttons are now real <a> links (iOS universal link → X app; Android intent://…package=com.twitter.android with browser fallback). X OAuth authorize (/i/oauth2/*) is explicitly EXCLUDED by X from app deep links (apple-app-site-association `NOT /i/oauth2/*`) → Connect X must happen in the mobile browser; cannot be forced into the X app.
+
 ## Backlog
 - P0: User must provide X_TASK_TWEET_URL (post to like/RT/quote) and confirm callback URL is registered in X Developer Portal; user to test real OAuth in browser.
 - P1: Admin backend (/api/auth/nonce, verify-wallet, totp-setup, verify-totp, /api/admin/api-keys) if user wants the admin workspace functional
